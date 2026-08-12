@@ -3,8 +3,10 @@
 Personal portfolio/developer site.
 
 ## Stack
-- **Astro** (static output only — `output: 'static'` in `astro.config.mjs`, no SSR/adapter)
-- **Tailwind CSS** for styling
+- **Astro 5** (static output — default, no `output:` set explicitly since `static` is Astro's default; no SSR/adapter). Pinned to `^5.18.2` in `package.json` — `npm create astro@latest` defaults to Astro 7 now, deliberately not used here.
+- **Tailwind CSS v4** for styling, wired via the `@tailwindcss/vite` plugin in `astro.config.mjs` — not the old `@astrojs/tailwind` integration or a `tailwind.config.js`/postcss setup, both deprecated for v4.
+  - Global stylesheet: `src/styles/global.css` (just `@import "tailwindcss";`)
+  - Imported once in `src/layouts/Layout.astro`, which every page should use so styles apply site-wide
 - Plain HTML/CSS output, no client-side framework unless a specific interactive component needs Astro islands (prefer plain JS/CSS first)
 
 ## Commands
@@ -14,7 +16,7 @@ Personal portfolio/developer site.
 
 ## Conventions
 - Pages live in `src/pages/` (file-based routing)
-- Shared UI in `src/components/`, layouts in `src/layouts/`
+- Shared UI in `src/components/`, layouts in `src/layouts/` (currently just `Layout.astro`, the base layout every page wraps in)
 - Use `.astro` components by default; only reach for a UI framework if truly needed (none installed currently — don't add React/Vue/etc. without asking)
 - Tailwind utility classes inline; avoid custom CSS files unless something isn't expressible in utilities
 - Keep dependencies minimal — this is a static portfolio, not an app

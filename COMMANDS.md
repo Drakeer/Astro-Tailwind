@@ -92,3 +92,35 @@ node -v
 npm -v
 ```
 Prints installed version numbers — confirmed `v24.19.0` (node) and `11.17.0` (npm).
+
+## Astro + Tailwind project scaffold
+
+```bash
+npm create astro@latest <dir> -- --template minimal --no-install --no-git --yes
+```
+Runs Astro's official scaffolding CLI (`create-astro`) and generates the `minimal` starter template into `<dir>`. `--no-install` skips `npm install` (done separately, after moving files into place), `--no-git` skips `git init` (this repo already has one), `--yes` accepts defaults non-interactively. Scaffolded into a scratch directory rather than straight into the project root because `create-astro` refuses to write into a non-empty directory — it silently redirects to a new randomly-named subfolder instead of erroring, so a temp dir + manual move avoids that surprise.
+
+```bash
+mv <scratch-dir>/<file-or-dir> .
+```
+Moved only the actual Astro project files (`package.json`, `astro.config.mjs`, `tsconfig.json`, `src/`, `public/`, `.vscode/`) into the real project directory — deliberately *not* moving the scaffold's own generic `.gitignore`, `README.md`, or `AGENTS.md`/`CLAUDE.md` (a symlink to it), since those would've overwritten the project-specific versions already in place.
+
+```bash
+npm install
+```
+Installs everything listed in `package.json` (just `astro` at this point) into `node_modules/`.
+
+```bash
+npm install astro@5.18.2
+```
+Pins Astro to the latest 5.x release. `npm create astro@latest` installs whatever's tagged `latest` on npm — that's now Astro 7 — so this overrides it to stay on the requested major version (5).
+
+```bash
+npm install tailwindcss @tailwindcss/vite
+```
+Installs Tailwind CSS v4 and its official Vite plugin — the current recommended way to use Tailwind v4 in Astro. (Older setups used the `@astrojs/tailwind` integration or a separate `postcss.config`/`tailwind.config.js`; both are unnecessary/deprecated under v4.)
+
+```bash
+npm run build
+```
+Builds the static site to `dist/` — used here to verify the Astro + Tailwind wiring actually works (confirmed Tailwind utility classes like `text-3xl` were compiled into the output CSS and linked from `index.html`).
