@@ -419,3 +419,109 @@ with no user input and no third-party scripts.
 
 `ufw` is inactive; port 80 is open at the OS level and access is governed by the cloud
 firewall / security group instead.
+
+## DNS — finding out who actually controls a domain
+
+The registrar and the DNS host are often two different companies, and only the DNS host
+can change records. Working that out from the outside, without logging into anything:
+
+```bash
+dig +norecurse @a.gtld-servers.net arcrayde.com NS
+```
+Asks a `.com` root nameserver directly which servers are **delegated** authority for the
+domain. `+norecurse` stops the query being answered from a cache, so this is the
+authoritative delegation rather than whatever a resolver remembers. Result:
+`ns1/ns2.siteground.net` — DNS is hosted at **SiteGround**.
+
+```bash
+whois arcrayde.com | grep -iE '^\s*(registrar|name server|domain status|dnssec):'
+```
+The **registrar** is who you pay for the registration; it is not necessarily who serves
+DNS. Result: **Network Solutions** is the registrar while SiteGround serves the records.
+Also shows `clientTransferProhibited` (a standard registrar lock that blocks domain
+*transfers* — it does **not** block nameserver or record changes) and `DNSSEC: unsigned`
+(signed zones need extra care when migrating; unsigned does not).
+
+```bash
+dig +noall +answer @ns1.siteground.net arcrayde.com MX
+dig +noall +answer @ns1.siteground.net arcrayde.com TXT
+dig +noall +answer @ns1.siteground.net _dmarc.arcrayde.com TXT
+dig +noall +answer @ns1.siteground.net default._domainkey.arcrayde.com TXT
+```
+Querying the authoritative server **by name** (`@ns1...`) bypasses caching and shows the
+zone's true contents. Inventory the whole zone before migrating — an A record change is
+harmless to mail, but a **nameserver** change moves the entire zone and silently destroys
+any MX/SPF/DKIM/DMARC you did not recreate.
+
+```bash
+dig +short @ns1.siteground.net arcrayde.com AXFR
+```
+Attempts a zone transfer, which would dump every record at once. `Transfer failed` is the
+*correct* result — an open AXFR to the internet leaks your entire infrastructure map.
+
+```bash
+dig +noall +answer @ns1.siteground.net arcrayde.com A
+```
+The TTL in the output (86400 = 24h) is the migration's scheduling constraint: it is how
+long resolvers may keep serving the OLD value after a change. Lower it to ~300 and wait
+one full old-TTL period *before* cutting over, then raise it again afterwards.
+
+Note the two different TTLs that matter:
+
+| Change | Governed by | Value here |
+| --- | --- | --- |
+| A record edit | the record's own TTL | 86400 (24h) |
+| Nameserver change | the `.com` delegation TTL | 172800 (48h) |
+
+```bash
+whois 34.174.73.152 | grep -iE '^(orgname|netname):'
+dig +short -x 34.174.73.152
+```
+Identifies who owns an IP and its reverse DNS — useful for working out where a site is
+really hosted. Result: Google LLC / `googleusercontent.com`, i.e. SiteGround runs on GCP.
+
+```bash
+curl -sS -o /dev/null -D - http://arcrayde.com/
+```
+Response headers identify the stack without loading the page: `Link: <.../wp-json/>`
+reveals WordPress, and `<title>My WordPress</title>` showed it was an untouched
+placeholder — so repointing the domain destroys nothing of value.
+
+### Checking whether a provider is actually down
+
+```bash
+curl -sS -m 15 -o /dev/null -w 'status=%{http_code} time=%{time_total}s\n' https://login.siteground.com/
+```
+Distinguishes "the provider is down" from "my account is broken". Both SiteGround's site
+and login page returned 200, and its nameservers kept answering — so a failing password
+reset was account-specific, not an outage, and waiting would not have helped.
+
+A 403 from a vendor site (Network Solutions did this) is usually a WAF blocking a
+datacenter IP, not an outage — the same page loads fine from a home browser.
+
+### EC2 pre-flight before pointing DNS at a VPS
+
+```bash
+TOKEN=$(curl -sS -X PUT "http://169.254.169.254/latest/api/token" \
+  -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
+curl -sS -H "X-aws-ec2-metadata-token: $TOKEN" \
+  http://169.254.169.254/latest/meta-data/public-ipv4
+```
+`169.254.169.254` is the link-local **instance metadata** endpoint, reachable only from
+the instance itself. IMDSv2 requires fetching a token first with `PUT`.
+
+Two things must be confirmed in the EC2 console (the metadata service cannot answer them,
+and this instance has no IAM role, so the EC2 API is unavailable):
+
+1. Whether the public IP is an **Elastic IP** or auto-assigned. An auto-assigned IP
+   changes on every stop/start, which silently breaks the DNS record pointing at it.
+2. Whether the security group allows inbound **TCP 80** from `0.0.0.0/0`. With `ufw`
+   inactive, the security group is the only thing gating access.
+
+```bash
+# run from a machine OUTSIDE AWS, e.g. a laptop
+curl -sv http://54.159.196.213/ 2>&1 | tail -5
+```
+A host cannot test its own inbound reachability — the packets never traverse the cloud
+firewall. `Empty reply from server` means reachable *and* that the 444 catch-all is
+correctly refusing bare-IP requests. A timeout means the security group is blocking.
