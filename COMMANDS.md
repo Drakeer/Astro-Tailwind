@@ -164,3 +164,76 @@ Tests whether two branches share a common ancestor. Exit code 1 with no output m
 git worktree add -b reconcile/portfolio-on-main <path> main
 ```
 Creates a new branch off `main` in its own checkout, so the port is assembled and built in isolation without disturbing `main` itself.
+
+## SSH key + remote push setup (2026-08-13)
+
+The remote (`github.com/Drakeer/Astro-Tailwind`) was reachable read-only but had
+no write credentials on the VPS — no `gh` CLI, no `~/.ssh`, no credential helper —
+so `git push` failed with "could not read Username for 'https://github.com'".
+
+```bash
+ssh-keygen -t ed25519 -C "drakes2005@gmail.com" -f ~/.ssh/id_ed25519 -N ""
+```
+Generates an Ed25519 SSH keypair. Ed25519 over RSA: shorter keys, faster, and the
+current default recommendation. `-N ""` sets an empty passphrase so pushes can run
+unattended — the trade-off is that anyone who can read the private key file can push,
+so this key is scoped to one repo (see deploy key below) rather than the whole account.
+
+```bash
+chmod 700 ~/.ssh && chmod 600 ~/.ssh/id_ed25519
+```
+SSH refuses to use a private key that other users can read. `700` on the directory
+and `600` on the key are the required permissions.
+
+```bash
+ssh-keyscan -t ed25519 github.com >> ~/.ssh/known_hosts
+```
+Fetches GitHub's host key ahead of time so the first connection doesn't stop on an
+interactive "authenticity of host can't be established" prompt — which would hang a
+non-interactive script. The result was verified against GitHub's published fingerprint
+`SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU` before trusting it; blindly
+appending a scanned host key otherwise defeats the point of host verification.
+
+```bash
+git remote set-url origin git@github.com:Drakeer/Astro-Tailwind.git
+```
+Switches the remote from HTTPS to SSH. HTTPS would still ask for a username/password
+(and GitHub no longer accepts passwords); SSH uses the keypair above.
+
+```bash
+ssh -o BatchMode=yes -T git@github.com
+```
+Tests authentication without opening a shell. The reply
+`Hi Drakeer/Astro-Tailwind! You've successfully authenticated...` confirms the key is
+registered as a **deploy key on this repo**. An account-wide key would instead reply
+`Hi Drakeer!` — a useful way to tell which kind of key is in play, since a deploy key
+grants access to one repo while an account key grants it to every repo you own.
+`BatchMode=yes` makes it fail immediately instead of prompting.
+
+```bash
+git push --dry-run origin <branch>
+```
+Shows exactly what a push *would* do without sending anything. Used here to confirm the
+deploy key actually had write access ticked, before relying on it.
+
+### Getting the public key from the VPS to a Mac browser
+
+`~` in a remote SSH command expands to the *remote* login user's home. Logging in as
+`ubuntu` while the key lives under `/home/claude-agent/` means `~/.ssh/id_ed25519.pub`
+silently resolves to the wrong path — and `/home/claude-agent` is mode `750`, so it
+isn't readable from the `ubuntu` account without `sudo` anyway.
+
+```bash
+ssh -i <key.pem> ubuntu@<host> 'cat /tmp/eric-github-key.pub' | pbcopy
+```
+Runs `cat` on the VPS and pipes the output into the Mac's clipboard. `pbcopy` is
+macOS-local, so this crosses the remote/local clipboard boundary that a terminal
+copy command cannot. An absolute path avoids the `~` expansion problem above.
+
+```bash
+ssh-keygen -lf ~/.ssh/id_ed25519.pub
+```
+Prints the key's fingerprint (`SHA256:Jc7vGCbxGzAynJLQ2dM/xNfb4ulez+YaEv3wBNj2U38`).
+GitHub shows the same fingerprint next to an added key, so comparing them catches a
+truncated or line-wrapped paste — the usual failure when copying a long key out of a
+terminal window.
