@@ -237,3 +237,86 @@ Prints the key's fingerprint (`SHA256:Jc7vGCbxGzAynJLQ2dM/xNfb4ulez+YaEv3wBNj2U3
 GitHub shows the same fingerprint next to an added key, so comparing them catches a
 truncated or line-wrapped paste — the usual failure when copying a long key out of a
 terminal window.
+
+## Pre-cutover audit: Elastic IP 54.84.230.185 (2026-08-13)
+
+An Elastic IP was allocated and associated with the EC2 instance. Before pointing
+`arcrayde.com` at it, the goal is to answer three questions: is the EIP really on
+*this* box, does this box actually serve the site, and what breaks the moment DNS
+moves. None of these should be assumed.
+
+### Confirming the EIP is attached to this instance
+
+```bash
+curl -s https://ifconfig.me
+```
+Asks an outside service what source IP it sees. This is the only reliable way to
+learn your *public* address from inside the box — `ip addr` only ever shows the
+private VPC address (`172.31.91.81`), because AWS does the public↔private NAT out
+at the gateway, not on the instance's NIC. Returned `54.84.230.185`, so the EIP is
+correctly associated.
+
+```bash
+curl -s -H "X-aws-ec2-metadata-token: $TOK" http://169.254.169.254/latest/meta-data/public-ipv4
+```
+The instance metadata service — `169.254.169.254` is a link-local address every EC2
+instance can reach, serving facts about itself. Ubuntu images now require IMDSv2, so
+you must first `PUT` to `/latest/api/token` and pass the token back in a header;
+plain unauthenticated `GET` (IMDSv1) just hangs. Blocked by the sandbox here, but
+`ifconfig.me` already answered the question.
+
+### Why you cannot test your own Elastic IP from the instance
+
+```bash
+curl --max-time 8 -H "Host: arcrayde.com" http://54.84.230.185/
+```
+Times out — and this is **not** evidence of a problem. Traffic an instance sends to
+its own public IP leaves toward the internet gateway and is not hairpinned back in,
+so the packets simply die. The security group's inbound rules for port 80/443 can
+therefore only be verified from an outside network or the AWS console. Test from a
+phone on cellular, not from the box.
+
+```bash
+curl -s -H "Host: arcrayde.com" http://127.0.0.1/ | head -c 300
+```
+The correct local test instead. The `Host` header is mandatory: nginx picks a server
+block by hostname, and a bare-IP request matches the `000-catch-all` block, which
+answers `444` (connection closed, no response) — which curl reports as status `000`.
+A `000` here means "the catch-all did its job", not "nginx is down". With the header
+it returns the real Astro `index.html`, so nginx and the `dist/` root are correct.
+
+### Establishing what is live today
+
+```bash
+dig @ns1.siteground.net arcrayde.com A +noall +answer
+```
+Queries SiteGround's nameserver **directly** rather than the local resolver. A plain
+`dig` returns whatever a cache holds, with a countdown TTL; asking the authoritative
+server gives the record as configured, including its true TTL. Result: apex and `www`
+both point at `34.174.73.152` with TTL **86400** (24 hours).
+
+```bash
+curl -sI https://arcrayde.com/
+```
+Headers only (`-I`). The reply carries `link: <https://arcrayde.com/wp-json/>` and
+`x-httpd-modphp: 1` — the live site at that IP is still the **WordPress install on
+SiteGround**, served over working HTTPS. So this is a platform migration, not a
+server move, and HTTPS is a capability the current site has and the new box does not.
+
+Critically, there is **no `strict-transport-security` header** in that response. Had
+HSTS been set, browsers would refuse plain HTTP after the cutover and the site would
+be hard-down until TLS worked. Absent it, an HTTP-only window degrades rather than
+breaks.
+
+```bash
+dig +short arcrayde.com MX
+```
+Confirms mail routes to `mx*.antispam.mailspamprotection.com` (SiteGround). MX and A
+records are independent, so repointing the A record does not touch email — but the
+check is worth making before every DNS change, because moving *nameservers* would.
+
+```bash
+which certbot
+```
+Not installed. Combined with `ss -tlnp` showing a listener on `:80` but nothing on
+`:443`, the new box is HTTP-only today.
