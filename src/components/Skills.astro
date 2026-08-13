@@ -1,0 +1,77 @@
+---
+import SectionHeading from './SectionHeading.astro';
+
+// Exactly the capabilities provided. `class` groups them by discipline —
+// it is a categorisation, not a proficiency rating.
+const skills = [
+  { name: 'Network Single Source of Truth', class: 'data' },
+  { name: 'Network Automation', class: 'automation' },
+  { name: 'Routing / Switching', class: 'core' },
+  { name: 'Virtual Network Functions', class: 'virtualization' },
+  { name: 'Packet Capture', class: 'analysis' },
+  { name: 'Wireshark Analysis', class: 'analysis' },
+  { name: 'VPN', class: 'security' },
+  { name: 'BGP', class: 'routing' },
+  { name: 'OSPF', class: 'routing' },
+  { name: 'MPLS', class: 'transport' },
+];
+---
+
+<section
+  id="skills"
+  class="relative scroll-mt-20 border-y border-edge/60 bg-panel/20 py-24 sm:py-32"
+>
+  <div class="mx-auto max-w-6xl px-5 sm:px-8">
+    <SectionHeading index="02" command="show capabilities" title="Skills" />
+
+    <div
+      class="reveal overflow-hidden rounded-lg border border-edge bg-panel/50 shadow-xl shadow-black/40"
+    >
+      <!-- table chrome -->
+      <div
+        class="flex items-center justify-between border-b border-edge bg-panel-2/70 px-4 py-2.5"
+      >
+        <p class="font-mono text-[11px] text-ink-faint">capabilities.tbl</p>
+        <p class="font-mono text-[11px] text-ink-faint">
+          <span class="text-accent">{skills.length}</span> entries
+        </p>
+      </div>
+
+      <!-- visual column header -->
+      <div
+        class="grid grid-cols-[2.5rem_1fr_auto] items-center gap-3 border-b border-edge/70 px-4 py-2 font-mono text-[10px] tracking-widest text-ink-faint/70 uppercase sm:px-5"
+        aria-hidden="true"
+      >
+        <span>id</span>
+        <span>capability</span>
+        <span>class</span>
+      </div>
+
+      <ul class="divide-y divide-edge/50">
+        {
+          skills.map((skill, i) => (
+            <li class="group grid grid-cols-[2.5rem_1fr_auto] items-center gap-3 px-4 py-3 transition-colors hover:bg-accent/[0.04] sm:px-5">
+              <span class="font-mono text-xs tabular-nums text-ink-faint/70 transition-colors group-hover:text-accent-deep">
+                {String(i + 1).padStart(2, '0')}
+              </span>
+
+              <span class="flex min-w-0 items-center gap-2.5">
+                <span
+                  class="inline-block size-1.5 shrink-0 rounded-full bg-up/70 transition-shadow group-hover:shadow-[0_0_8px] group-hover:shadow-up/60"
+                  aria-hidden="true"
+                />
+                <span class="font-mono text-sm text-ink transition-colors group-hover:text-accent sm:text-base">
+                  {skill.name}
+                </span>
+              </span>
+
+              <span class="shrink-0 rounded border border-edge-lit/60 bg-void/40 px-2 py-0.5 font-mono text-[10px] text-ink-faint sm:text-[11px]">
+                {skill.class}
+              </span>
+            </li>
+          ))
+        }
+      </ul>
+    </div>
+  </div>
+</section>

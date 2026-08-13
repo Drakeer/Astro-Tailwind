@@ -21,6 +21,11 @@ pnpm-debug.log*
 !.vscode/extensions.json
 .idea/
 
+# Claude Code local session state (settings.local.json, worktree scratch dirs).
+# Worktrees under here are separate git checkouts — without this they get
+# staged as embedded repositories.
+.claude/
+
 # OS junk
 .DS_Store
 Thumbs.db

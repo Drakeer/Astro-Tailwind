@@ -1,7 +1,27 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import StatusBar from '../components/StatusBar.astro';
+import Hero from '../components/Hero.astro';
+import About from '../components/About.astro';
+import Skills from '../components/Skills.astro';
+import Projects from '../components/Projects.astro';
+import Contact from '../components/Contact.astro';
+import Footer from '../components/Footer.astro';
 ---
 
-<Layout title="Astro">
-	<h1 class="text-3xl font-bold">Astro</h1>
+<Layout
+  title="Eric Drake — Network Engineering & Automation"
+  description="Eric Drake — network single source of truth, automation, routing and switching, packet analysis. AI curious."
+>
+  <StatusBar />
+
+  <main id="main">
+    <Hero />
+    <About />
+    <Skills />
+    <Projects />
+    <Contact />
+  </main>
+
+  <Footer />
 </Layout>

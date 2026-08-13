@@ -1,1 +1,189 @@
 @import "tailwindcss";
+
+/* ---------------------------------------------------------------
+   Design tokens — terminal / network-operations console
+   Dark base, monospace structure, one restrained light-blue accent.
+   --------------------------------------------------------------- */
+@theme {
+  /* surfaces */
+  --color-void: #04070b;
+  --color-panel: #090e15;
+  --color-panel-2: #0d141d;
+  --color-edge: #172231;
+  --color-edge-lit: #243141;
+
+  /* type */
+  --color-ink: #ccd6e2;
+  --color-ink-dim: #8496a9;
+  --color-ink-faint: #576678;
+
+  /* accent — light blue */
+  --color-accent: #7dd3fc;
+  --color-accent-hot: #38bdf8;
+  --color-accent-deep: #0284c7;
+
+  /* status */
+  --color-up: #4ade80;
+
+  --font-mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", "SF Mono",
+    Menlo, Consolas, "Liberation Mono", monospace;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    /* offset for the fixed status bar when jumping to anchors */
+    scroll-padding-top: 5rem;
+  }
+
+  body {
+    background-color: var(--color-void);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-accent) 30%, transparent);
+    color: #fff;
+  }
+
+  /* keyboard focus — visible against the dark ground */
+  :focus-visible {
+    outline: 2px solid var(--color-accent-hot);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-void);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-edge);
+    border: 2px solid var(--color-void);
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-accent-deep);
+  }
+}
+
+/* ---------------------------------------------------------------
+   Ambient background: fine engineering grid + vignette + scanlines
+   --------------------------------------------------------------- */
+.bg-console {
+  background-image:
+    linear-gradient(
+      to right,
+      color-mix(in oklab, var(--color-accent) 6%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklab, var(--color-accent) 6%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 64px 64px;
+}
+
+.bg-vignette {
+  background:
+    radial-gradient(
+      ellipse 80% 60% at 50% -10%,
+      color-mix(in oklab, var(--color-accent) 12%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 60% 50% at 90% 20%,
+      color-mix(in oklab, var(--color-accent-deep) 10%, transparent),
+      transparent 60%
+    );
+}
+
+.scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 3px,
+    rgba(255, 255, 255, 0.014) 3px 4px
+  );
+}
+
+/* ---------------------------------------------------------------
+   Terminal cursor
+   --------------------------------------------------------------- */
+.cursor-block {
+  display: inline-block;
+  width: 0.6em;
+  height: 1.05em;
+  vertical-align: text-bottom;
+  background: var(--color-accent-hot);
+  box-shadow: 0 0 10px color-mix(in oklab, var(--color-accent-hot) 60%, transparent);
+  animation: blink 1.1s steps(1) infinite;
+}
+
+@keyframes blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  50.01%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* text glow for the display name */
+.glow {
+  text-shadow:
+    0 0 24px color-mix(in oklab, var(--color-accent) 35%, transparent),
+    0 0 60px color-mix(in oklab, var(--color-accent-deep) 22%, transparent);
+}
+
+/* ---------------------------------------------------------------
+   Scroll reveal — set by IntersectionObserver in Layout.astro
+   --------------------------------------------------------------- */
+/* Gated on .js so that with JavaScript disabled the content simply renders,
+   rather than being stranded at opacity:0 with no observer to reveal it. */
+.js .reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.js .reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .cursor-block {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

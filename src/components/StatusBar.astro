@@ -1,0 +1,48 @@
+---
+const nav = [
+  { href: '#about', label: 'about' },
+  { href: '#skills', label: 'skills' },
+  { href: '#projects', label: 'projects' },
+  { href: '#contact', label: 'contact' },
+];
+---
+
+<header
+  class="fixed inset-x-0 top-0 z-40 border-b border-edge/80 bg-void/85 backdrop-blur-md"
+>
+  <div
+    class="mx-auto flex h-12 max-w-6xl items-center gap-4 px-5 font-mono text-xs sm:px-8"
+  >
+    <!-- left: session identity, styled like a tmux status segment -->
+    <a
+      href="#top"
+      class="group flex items-center gap-2 whitespace-nowrap transition-colors"
+    >
+      <span
+        class="inline-block size-1.5 shrink-0 rounded-full bg-up shadow-[0_0_8px] shadow-up/70"
+        aria-hidden="true"></span>
+      <span class="text-ink-dim group-hover:text-ink">eric</span>
+      <span class="text-ink-faint">@</span>
+      <span class="text-accent">arcrayde</span>
+    </a>
+
+    <span class="hidden text-ink-faint sm:inline" aria-hidden="true">:~$</span>
+
+    <nav aria-label="Sections" class="ml-auto flex items-center gap-4 sm:gap-6">
+      {
+        nav.map((item) => (
+          <a
+            href={item.href}
+            data-nav
+            class="text-ink-faint transition-colors hover:text-accent"
+          >
+            <span class="text-edge-lit" aria-hidden="true">
+              /
+            </span>
+            {item.label}
+          </a>
+        ))
+      }
+    </nav>
+  </div>
+</header>

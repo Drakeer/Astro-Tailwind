@@ -1,0 +1,21 @@
+---
+const year = new Date().getFullYear();
+---
+
+<footer class="border-t border-edge/60 bg-void">
+  <div
+    class="mx-auto flex max-w-6xl flex-col items-start gap-3 px-5 py-8 font-mono text-[11px] text-ink-faint sm:flex-row sm:items-center sm:justify-between sm:px-8"
+  >
+    <p>
+      <span class="text-accent-deep">&copy;</span>
+      {year} Eric Drake
+    </p>
+
+    <p class="flex items-center gap-2">
+      <span
+        class="inline-block size-1.5 rounded-full bg-up shadow-[0_0_6px] shadow-up/60"
+        aria-hidden="true"></span>
+      arcrayde.com — built with Astro &amp; Tailwind
+    </p>
+  </div>
+</footer>

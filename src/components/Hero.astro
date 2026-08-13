@@ -1,0 +1,166 @@
+---
+// Decorative hex strip — evokes a packet capture byte pane. Purely visual.
+const hexRow =
+  '45 00 00 3c 1c 46 40 00 40 06 b1 e6 c0 a8 00 68 c0 a8 00 01 00 50 1f 90';
+---
+
+<section id="top" class="relative overflow-hidden">
+  <!-- ambient layers -->
+  <div class="bg-console absolute inset-0 opacity-70" aria-hidden="true"></div>
+  <div class="bg-vignette absolute inset-0" aria-hidden="true"></div>
+  <div
+    class="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-void"
+    aria-hidden="true">
+  </div>
+
+  <div
+    class="relative mx-auto flex min-h-svh max-w-6xl flex-col justify-center px-5 pt-24 pb-16 sm:px-8"
+  >
+    <!-- ── terminal window ───────────────────────────────────── -->
+    <div
+      class="scanlines relative overflow-hidden rounded-xl border border-edge-lit/70 bg-panel/80 shadow-2xl shadow-black/60 backdrop-blur-sm"
+    >
+      <!-- title bar -->
+      <div
+        class="flex items-center gap-3 border-b border-edge bg-panel-2/80 px-4 py-2.5"
+      >
+        <div class="flex gap-1.5" aria-hidden="true">
+          <span class="size-2.5 rounded-full bg-edge-lit"></span>
+          <span class="size-2.5 rounded-full bg-edge-lit"></span>
+          <span class="size-2.5 rounded-full bg-accent-deep/70"></span>
+        </div>
+        <p
+          class="flex-1 truncate text-center font-mono text-[11px] text-ink-faint"
+        >
+          eric@arcrayde: ~/portfolio
+        </p>
+        <span class="hidden font-mono text-[11px] text-ink-faint sm:inline"
+          >zsh</span
+        >
+      </div>
+
+      <!-- terminal body with line-number gutter -->
+      <div class="flex">
+        <div
+          class="hidden shrink-0 select-none border-r border-edge/70 bg-void/30 px-3 py-6 text-right font-mono text-xs leading-7 text-ink-faint/50 sm:block sm:py-8"
+          aria-hidden="true"
+        >
+          {
+            Array.from({ length: 9 }, (_, i) => (
+              <div>{String(i + 1).padStart(2, '0')}</div>
+            ))
+          }
+        </div>
+
+        <div
+          class="min-w-0 flex-1 px-5 py-6 font-mono leading-7 sm:px-8 sm:py-8"
+        >
+          <!-- whoami -->
+          <p class="text-xs text-ink-faint sm:text-sm">
+            <span class="text-accent-deep">$</span> whoami
+          </p>
+
+          <h1
+            class="glow mt-3 text-4xl font-bold tracking-tighter text-white sm:text-6xl lg:text-7xl"
+          >
+            Eric Drake
+          </h1>
+
+          <!-- bio -->
+          <p class="mt-8 text-xs text-ink-faint sm:text-sm">
+            <span class="text-accent-deep">$</span> cat bio.txt
+          </p>
+
+          <p
+            class="mt-2 text-2xl font-medium tracking-tight text-accent sm:text-3xl"
+          >
+            <span class="type-line">AI Curious</span><span
+              class="cursor-block ml-1"
+              aria-hidden="true"></span>
+          </p>
+
+          <!-- domain -->
+          <p class="mt-8 text-xs text-ink-faint sm:text-sm">
+            <span class="text-accent-deep">$</span> ls ~/domains
+          </p>
+
+          <ul
+            class="mt-3 flex flex-wrap gap-2 text-[11px] sm:text-xs"
+            aria-label="Areas of work"
+          >
+            {
+              [
+                'network automation',
+                'routing & switching',
+                'packet analysis',
+                'source of truth',
+              ].map((tag) => (
+                <li class="rounded border border-edge-lit/60 bg-void/50 px-2.5 py-1 text-ink-dim">
+                  {tag}
+                </li>
+              ))
+            }
+          </ul>
+
+          <!-- actions -->
+          <div class="mt-9 flex flex-wrap items-center gap-3">
+            <a
+              href="#contact"
+              class="group inline-flex items-center gap-2 rounded border border-accent/40 bg-accent/10 px-4 py-2 text-sm text-accent transition-colors hover:border-accent hover:bg-accent/20"
+            >
+              <span class="text-accent-deep" aria-hidden="true">&gt;</span>
+              get in touch
+            </a>
+
+            <a
+              href="#projects"
+              class="inline-flex items-center gap-2 rounded border border-edge-lit px-4 py-2 text-sm text-ink-dim transition-colors hover:border-accent/40 hover:text-ink"
+            >
+              view work
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- decorative packet byte strip -->
+      <div
+        class="overflow-hidden border-t border-edge/70 bg-void/40 px-4 py-2"
+        aria-hidden="true"
+      >
+        <p
+          class="truncate font-mono text-[10px] tracking-widest text-ink-faint/40"
+        >
+          {hexRow}
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Monospace typewriter — width in `ch` matches the character count. */
+  .type-line {
+    display: inline-block;
+    overflow: hidden;
+    white-space: nowrap;
+    vertical-align: bottom;
+    width: 10ch; /* "AI Curious" */
+    animation: type 1.4s steps(10, end) 0.3s both;
+  }
+
+  @keyframes type {
+    from {
+      width: 0;
+    }
+    to {
+      width: 10ch;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .type-line {
+      animation: none;
+      width: auto;
+    }
+  }
+</style>

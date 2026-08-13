@@ -1,0 +1,74 @@
+---
+import SectionHeading from './SectionHeading.astro';
+
+const facts = [
+  { key: 'focus', value: 'network infrastructure & automation' },
+  { key: 'layers', value: 'L2 / L3 — switching, routing, transport' },
+  { key: 'exploring', value: 'AI applied to network operations' },
+  { key: 'contact', value: 'drakes2005@protonmail.com' },
+];
+---
+
+<section id="about" class="relative scroll-mt-20 py-24 sm:py-32">
+  <div class="mx-auto max-w-6xl px-5 sm:px-8">
+    <SectionHeading index="01" command="cat about.md" title="About" />
+
+    <div class="grid gap-10 lg:grid-cols-5 lg:gap-14">
+      <!-- prose -->
+      <div class="reveal space-y-5 leading-relaxed text-ink-dim lg:col-span-3">
+        <p>
+          I work on the parts of a network that decide whether everything else
+          behaves: how routes are chosen, how traffic is segmented and carried,
+          and where the authoritative record of it all actually lives.
+        </p>
+
+        <p>
+          Most network problems I care about are really
+          <span class="font-mono text-accent">data</span> problems. A single source
+          of truth turns a network from a collection of device configs into something
+          you can query, validate and automate against — so changes stop being folklore
+          and start being reproducible.
+        </p>
+
+        <p>
+          When something breaks, I'd rather read the packets than guess. Capture
+          first, form a theory second — Wireshark has settled more arguments than
+          any diagram.
+        </p>
+
+        <p>
+          Lately I'm <span class="font-mono text-accent">AI curious</span>: poking
+          at where models are genuinely useful in network operations, and where they
+          are just an expensive way to be confidently wrong.
+        </p>
+      </div>
+
+      <!-- spec panel -->
+      <div class="reveal lg:col-span-2">
+        <div
+          class="overflow-hidden rounded-lg border border-edge bg-panel/60 shadow-lg shadow-black/40"
+        >
+          <div
+            class="flex items-center gap-2 border-b border-edge bg-panel-2/70 px-4 py-2"
+          >
+            <span
+              class="inline-block size-1.5 rounded-full bg-up"
+              aria-hidden="true"></span>
+            <p class="font-mono text-[11px] text-ink-faint">profile.yaml</p>
+          </div>
+
+          <dl class="divide-y divide-edge/70 font-mono text-sm">
+            {
+              facts.map((f) => (
+                <div class="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:gap-3">
+                  <dt class="shrink-0 text-accent-deep sm:w-24">{f.key}:</dt>
+                  <dd class="min-w-0 break-words text-ink-dim">{f.value}</dd>
+                </div>
+              ))
+            }
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

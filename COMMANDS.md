@@ -124,3 +124,43 @@ Installs Tailwind CSS v4 and its official Vite plugin — the current recommende
 npm run build
 ```
 Builds the static site to `dist/` — used here to verify the Astro + Tailwind wiring actually works (confirmed Tailwind utility classes like `text-3xl` were compiled into the output CSS and linked from `index.html`).
+
+## Portfolio site build (2026-08-13)
+
+```bash
+git config user.name "Drakeer"
+git config user.email "drakes2005@gmail.com"
+```
+Re-set the repo-local commit identity. Note this stamps `Drakeer` (capital D) while last night's commits used `drakeer` — Git treats those as different author names, so the log now shows both spellings.
+
+```bash
+npm run preview -- --port 4399
+```
+Serves the built `dist/` locally to sanity-check before deploy. The explicit port matters: the default 4321 was already occupied, and `astro preview` silently falls back to 4322 rather than failing. A naive `curl localhost:4321` therefore hit an unrelated server and returned a misleading 200.
+
+```bash
+curl -s -o /dev/null -w "HTTP %{http_code} / %{size_download} bytes\n" http://localhost:4399/
+```
+Confirms the preview actually serves the real page — status code plus byte count, so a wrong-server response is visible instead of being assumed correct.
+
+```bash
+grep -o "\.bg-void\|\.text-accent" dist/_astro/*.css | sort | uniq -c
+```
+Verifies that custom Tailwind v4 `@theme` tokens compiled into real utility classes. Under v4 a token typo produces no build error — the utility is simply never generated and the page renders unstyled — so this is checked explicitly rather than trusted.
+
+## Reconciling two unrelated histories (2026-08-13)
+
+The repo ended up with two root commits and no shared ancestor: `master`
+(root `841fd23`, authored before the identity was set) and `main` (root
+`3d9eb38`, the clean squashed history). `main` carries the better CLAUDE.md,
+this command log, the favicons and `.vscode/` config.
+
+```bash
+git merge-base main master; echo "exit=$?"
+```
+Tests whether two branches share a common ancestor. Exit code 1 with no output means they do not — the histories are unrelated, so an ordinary `git merge` would refuse without `--allow-unrelated-histories`, and a rebase would be equally messy. Porting the files across is cleaner than forcing the graphs together.
+
+```bash
+git worktree add -b reconcile/portfolio-on-main <path> main
+```
+Creates a new branch off `main` in its own checkout, so the port is assembled and built in isolation without disturbing `main` itself.

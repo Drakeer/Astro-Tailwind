@@ -1,0 +1,100 @@
+---
+import SectionHeading from './SectionHeading.astro';
+
+// Practice areas drawn from the stated capability set. Deliberately no invented
+// clients, metrics, dates or repo links — swap in real write-ups as they exist.
+const projects = [
+  {
+    id: '01',
+    name: 'source-of-truth',
+    title: 'Network Source of Truth',
+    body: 'Making the network queryable. One authoritative record of sites, devices, addressing and circuits — so intent lives in data rather than in a device config someone edited at 2am, and every downstream tool reads from the same place.',
+    tags: ['single source of truth', 'data modelling'],
+  },
+  {
+    id: '02',
+    name: 'automation',
+    title: 'Automation & Config Pipelines',
+    body: 'Driving configuration from that record instead of by hand. Templated generation, pre-change validation and repeatable rollout, so a change is reviewable before it touches production and reproducible after it does.',
+    tags: ['network automation', 'validation'],
+  },
+  {
+    id: '03',
+    name: 'routing',
+    title: 'Routing, Switching & Transport',
+    body: 'The control plane end of the job: BGP policy and path selection, OSPF areas and convergence behaviour, MPLS transport underneath, and the L2 design that has to stay boring for any of it to work.',
+    tags: ['BGP', 'OSPF', 'MPLS', 'routing / switching'],
+  },
+  {
+    id: '04',
+    name: 'packet-analysis',
+    title: 'Packet Capture & Analysis',
+    body: 'Evidence over intuition. Capturing at the right point in the path and reading what actually happened on the wire — handshakes, retransmits, MTU and timing — to separate the real fault from the convincing story about it.',
+    tags: ['packet capture', 'Wireshark'],
+  },
+  {
+    id: '05',
+    name: 'vnf',
+    title: 'Virtual Network Functions',
+    body: 'Network functions as software: routers, firewalls and gateways running virtualised, which makes lab topologies disposable and lets a design be tested before it is bought.',
+    tags: ['VNF', 'virtualization'],
+  },
+  {
+    id: '06',
+    name: 'secure-connectivity',
+    title: 'Secure Connectivity',
+    body: 'Getting traffic between sites and users without trusting the path in between — tunnel design, routing over the overlay, and keeping the failure modes understood rather than discovered.',
+    tags: ['VPN', 'tunnelling'],
+  },
+];
+---
+
+<section id="projects" class="relative scroll-mt-20 py-24 sm:py-32">
+  <div class="mx-auto max-w-6xl px-5 sm:px-8">
+    <SectionHeading index="03" command="ls -la ~/work" title="Projects" />
+
+    <div class="grid gap-5 md:grid-cols-2">
+      {
+        projects.map((project) => (
+          <article class="reveal group relative flex flex-col overflow-hidden rounded-lg border border-edge bg-panel/50 shadow-lg shadow-black/40 transition-colors duration-300 hover:border-accent/40">
+            {/* top accent line, drawn on hover */}
+            <span
+              class="absolute inset-x-0 top-0 h-px scale-x-0 bg-gradient-to-r from-transparent via-accent to-transparent transition-transform duration-500 group-hover:scale-x-100"
+              aria-hidden="true"
+            />
+
+            <div class="flex items-center gap-2.5 border-b border-edge bg-panel-2/60 px-4 py-2.5">
+              <span class="font-mono text-[11px] text-ink-faint/70 tabular-nums">
+                {project.id}
+              </span>
+              <span class="text-edge-lit" aria-hidden="true">
+                │
+              </span>
+              <p class="truncate font-mono text-[11px] text-ink-faint transition-colors group-hover:text-accent">
+                {project.name}/
+              </p>
+            </div>
+
+            <div class="flex flex-1 flex-col p-5 sm:p-6">
+              <h3 class="font-mono text-lg font-semibold tracking-tight text-ink transition-colors group-hover:text-accent sm:text-xl">
+                {project.title}
+              </h3>
+
+              <p class="mt-3 flex-1 text-sm leading-relaxed text-ink-dim">
+                {project.body}
+              </p>
+
+              <ul class="mt-5 flex flex-wrap gap-2">
+                {project.tags.map((tag) => (
+                  <li class="rounded border border-edge-lit/50 bg-void/40 px-2 py-0.5 font-mono text-[10px] text-ink-faint sm:text-[11px]">
+                    {tag}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </article>
+        ))
+      }
+    </div>
+  </div>
+</section>

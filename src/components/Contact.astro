@@ -1,0 +1,107 @@
+---
+import SectionHeading from './SectionHeading.astro';
+
+const email = 'drakes2005@protonmail.com';
+const linkedin = 'https://www.linkedin.com/in/eric-drake-a9a6156/';
+---
+
+<section
+  id="contact"
+  class="relative scroll-mt-20 overflow-hidden border-t border-edge/60 bg-panel/20 py-24 sm:py-32"
+>
+  <div class="bg-console absolute inset-0 opacity-40" aria-hidden="true"></div>
+  <div
+    class="absolute inset-x-0 bottom-0 h-64 bg-[radial-gradient(ellipse_60%_100%_at_50%_100%,color-mix(in_oklab,var(--color-accent)_10%,transparent),transparent)]"
+    aria-hidden="true">
+  </div>
+
+  <div class="relative mx-auto max-w-6xl px-5 sm:px-8">
+    <SectionHeading index="04" command="./contact.sh" title="Contact" />
+
+    <div class="grid gap-10 lg:grid-cols-5 lg:gap-14">
+      <div class="reveal lg:col-span-2">
+        <p class="max-w-md leading-relaxed text-ink-dim">
+          Open to conversations about network infrastructure, automation, and
+          where AI actually earns its place in operations. The inbox is the
+          fastest route.
+        </p>
+      </div>
+
+      <div class="reveal lg:col-span-3">
+        <div
+          class="scanlines relative overflow-hidden rounded-lg border border-edge-lit/60 bg-panel/70 shadow-xl shadow-black/50"
+        >
+          <div
+            class="flex items-center gap-3 border-b border-edge bg-panel-2/70 px-4 py-2.5"
+          >
+            <div class="flex gap-1.5" aria-hidden="true">
+              <span class="size-2.5 rounded-full bg-edge-lit"></span>
+              <span class="size-2.5 rounded-full bg-edge-lit"></span>
+              <span class="size-2.5 rounded-full bg-accent-deep/70"></span>
+            </div>
+            <p class="font-mono text-[11px] text-ink-faint">connect</p>
+          </div>
+
+          <div class="space-y-6 p-5 font-mono sm:p-6">
+            <!-- email -->
+            <div>
+              <p class="text-xs text-ink-faint">
+                <span class="text-accent-deep">$</span> mail
+              </p>
+
+              <div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
+                <a
+                  href={`mailto:${email}`}
+                  class="text-base break-all text-accent underline decoration-accent/30 underline-offset-4 transition-colors hover:decoration-accent sm:text-lg"
+                >
+                  {email}
+                </a>
+
+                <button
+                  type="button"
+                  data-copy={email}
+                  class="shrink-0 rounded border border-edge-lit px-2 py-1 text-[11px] text-ink-faint transition-colors hover:border-accent/50 hover:text-accent"
+                >
+                  <span data-copy-label>copy</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- linkedin -->
+            <div>
+              <p class="text-xs text-ink-faint">
+                <span class="text-accent-deep">$</span> open linkedin
+              </p>
+
+              <a
+                href={linkedin}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="mt-2 inline-flex items-center gap-2 text-base text-accent underline decoration-accent/30 underline-offset-4 transition-colors hover:decoration-accent sm:text-lg"
+              >
+                in/eric-drake-a9a6156
+                <svg
+                  class="size-3.5 shrink-0"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M7 17L17 7M17 7H8M17 7v9"></path>
+                </svg>
+              </a>
+            </div>
+
+            <p class="flex items-center gap-1 pt-1 text-xs text-ink-faint">
+              <span class="text-accent-deep">$</span>
+              <span class="cursor-block" aria-hidden="true"></span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

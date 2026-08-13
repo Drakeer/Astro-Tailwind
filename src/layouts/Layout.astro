@@ -2,22 +2,124 @@
 import '../styles/global.css';
 
 interface Props {
-	title?: string;
+  title: string;
+  description: string;
 }
 
-const { title = 'Astro' } = Astro.props;
+const { title, description } = Astro.props;
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>{title}</title>
-	</head>
-	<body>
-		<slot />
-	</body>
+<!doctype html>
+<html lang="en" class="bg-void">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="generator" content={Astro.generator} />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#04070b" />
+    <link rel="canonical" href="https://arcrayde.com/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content="https://arcrayde.com/" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Set before paint so reveal-on-scroll only engages when JS can undo it. -->
+    <script is:inline>
+      document.documentElement.classList.add('js');
+    </script>
+
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2304070b'/%3E%3Cpath d='M7 11l5 5-5 5' stroke='%237dd3fc' stroke-width='2.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M16 21h9' stroke='%237dd3fc' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E"
+    />
+  </head>
+
+  <body class="min-h-screen antialiased">
+    <a
+      href="#main"
+      class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded focus:border focus:border-accent/40 focus:bg-panel focus:px-4 focus:py-2 focus:font-mono focus:text-sm focus:text-accent"
+    >
+      skip to content
+    </a>
+
+    <slot />
+
+    <script is:inline>
+      // Scroll reveal. The .reveal styles are gated behind .js in CSS, so a
+      // no-JS visitor gets the fully rendered page with no animation.
+      (() => {
+        const els = document.querySelectorAll('.reveal');
+        if (!('IntersectionObserver' in window)) {
+          els.forEach((el) => el.classList.add('is-in'));
+          return;
+        }
+        const io = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add('is-in');
+                io.unobserve(entry.target);
+              }
+            });
+          },
+          { rootMargin: '0px 0px -10% 0px', threshold: 0.08 }
+        );
+        els.forEach((el) => io.observe(el));
+      })();
+
+      // Copy-to-clipboard for the email address
+      (() => {
+        const btn = document.querySelector('[data-copy]');
+        if (!btn) return;
+        const label = btn.querySelector('[data-copy-label]');
+        if (!label) return;
+        const original = label.textContent;
+        btn.addEventListener('click', async () => {
+          const value = btn.getAttribute('data-copy');
+          if (!value) return;
+          try {
+            await navigator.clipboard.writeText(value);
+            label.textContent = 'copied';
+          } catch {
+            label.textContent = 'copy failed';
+          }
+          window.setTimeout(() => {
+            label.textContent = original;
+          }, 1600);
+        });
+      })();
+
+      // Highlight the nav entry for the section currently in view
+      (() => {
+        const links = Array.from(document.querySelectorAll('[data-nav]'));
+        if (!links.length) return;
+        const sections = links
+          .map((l) => document.querySelector(l.getAttribute('href')))
+          .filter(Boolean);
+        if (!sections.length) return;
+
+        const setActive = (id) => {
+          links.forEach((l) => {
+            const on = l.getAttribute('href') === '#' + id;
+            l.classList.toggle('text-accent', on);
+            l.classList.toggle('text-ink-faint', !on);
+          });
+        };
+
+        const io = new IntersectionObserver(
+          (entries) => {
+            const visible = entries
+              .filter((e) => e.isIntersecting)
+              .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+            if (visible) setActive(visible.target.id);
+          },
+          { rootMargin: '-45% 0px -45% 0px', threshold: 0 }
+        );
+        sections.forEach((s) => io.observe(s));
+      })();
+    </script>
+  </body>
 </html>
