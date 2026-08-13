@@ -320,3 +320,49 @@ which certbot
 ```
 Not installed. Combined with `ss -tlnp` showing a listener on `:80` but nothing on
 `:443`, the new box is HTTP-only today.
+
+### Verifying the security group from outside (2026-08-13)
+
+Inbound rules were added for HTTP (TCP 80) and HTTPS (TCP 443), both from
+`0.0.0.0/0`. Since the instance cannot reach its own Elastic IP (see above), the
+rules have to be proven from an external network. `check-host.net` runs a plain TCP
+connect from nodes in several countries and returns JSON — enough to answer the
+question without waiting to be somewhere else.
+
+```bash
+curl -s -H "Accept: application/json" \
+  "https://check-host.net/check-tcp?host=54.84.230.185:80&max_nodes=3"
+```
+Queues the check and returns a `request_id`. The `Accept: application/json` header is
+required — without it the service returns an HTML page instead of JSON.
+
+```bash
+curl -s -H "Accept: application/json" \
+  "https://check-host.net/check-result/<request_id>"
+```
+Fetches results a few seconds later; the check is asynchronous, so an immediate poll
+comes back empty. Port 80 connected from Bulgaria, Moldova and Slovenia in ~0.12s
+each, with no `error` key — the rule works.
+
+**Reading the port 443 result is the useful part.** All three nodes returned
+`{"error":"Connection refused"}`, which is the *good* outcome here:
+
+- **Connection refused** — a packet reached the host and the kernel actively rejected
+  it, because nothing is listening on 443 yet. This proves the security group is
+  letting 443 through.
+- **Timed out** — the packet vanished with no reply. That is what a security group
+  block looks like, because AWS silently *drops* disallowed traffic rather than
+  rejecting it.
+
+So "refused" confirms the rule; "timeout" would have meant the rule was missing or
+wrong. This refused-vs-timeout distinction is the general way to tell a firewall
+problem from a service problem, and it is worth reaching for any time a port seems
+closed.
+
+```bash
+ip -6 addr show scope global
+```
+Checks for a routable IPv6 address. There is none, so the IPv4-only inbound rules are
+sufficient. Worth knowing because the nginx server blocks also `listen [::]:80` — if
+IPv6 were ever enabled on the instance, matching `::/0` rules would be needed or
+IPv6 clients would silently time out while IPv4 clients worked fine.
