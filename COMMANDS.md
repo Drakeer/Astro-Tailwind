@@ -366,3 +366,55 @@ Checks for a routable IPv6 address. There is none, so the IPv4-only inbound rule
 sufficient. Worth knowing because the nginx server blocks also `listen [::]:80` — if
 IPv6 were ever enabled on the instance, matching `::/0` rules would be needed or
 IPv6 clients would silently time out while IPv4 clients worked fine.
+
+### Lowering TTLs before the cutover (2026-08-13)
+
+TTL is set per *record*, not per domain, so lowering the apex `A` leaves `www` — and
+every other record — untouched. The first edit changed only `arcrayde.com`; `www`
+stayed at 86400 and had to be done separately. All records were then set to 300.
+
+```bash
+dig @ns1.siteground.net arcrayde.com A +noall +answer
+dig @ns1.siteground.net www.arcrayde.com A +noall +answer
+```
+Always query the **authoritative** nameserver when verifying an edit. A plain `dig`
+answers from a cache and shows a counting-down remainder of the *old* TTL, which
+looks like the change failed. Checking `ns2` as well confirms both of SiteGround's
+servers carry the edit, distinguishing a genuine failure from one server lagging.
+
+```bash
+dig @ns1.siteground.net arcrayde.com SOA +noall +answer
+```
+The **SOA serial** is the zone's version number, and it increments on every committed
+change — here it moved `33` → `36` across three saves. This is the reliable way to
+tell "the panel never saved my edit" from "it saved but hasn't propagated": if the
+serial has not moved, nothing was committed. Capture the serial *before* an edit so
+the comparison is available afterwards.
+
+```bash
+dig @ns1.siteground.net www.arcrayde.com CNAME +noall +answer
+```
+Run while diagnosing the stuck `www` record, to rule out its being a CNAME (a CNAME's
+TTL lives on the alias, not the target). It returned nothing, confirming a real A
+record. Note that an `ANY` query is not a useful substitute — SiteGround answers it
+with `HINFO "rfc8482"`, the standard modern refusal to enumerate a record set.
+
+### A side effect of moving the A record: SPF
+
+```bash
+dig @ns1.siteground.net arcrayde.com TXT +noall +answer
+```
+Returns `v=spf1 +a +mx include:...spf.auto.dnssmarthost.net ~all`.
+
+The `+a` mechanism means **"whatever IP the domain's A record points at is authorised
+to send mail as this domain."** So repointing the A record silently moves that
+authorisation from the SiteGround host to the EC2 box — the SPF record's *text* never
+changes, but its *meaning* does. Worth being deliberate about: it widens mail
+authority to a web server that has no reason to send mail. Dropping `+a` (leaving
+`+mx` and the `include:`) is the tighter option, since mail is handled by
+`mx*.antispam.mailspamprotection.com`, not by the web host.
+
+After the cutover is confirmed stable, raise TTLs back to 3600 or 86400. Leaving them
+at 300 permanently means every resolver re-queries constantly, and a nameserver
+outage becomes visible to visitors within five minutes instead of being absorbed by
+long caches.
