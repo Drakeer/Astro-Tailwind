@@ -237,3 +237,185 @@ Prints the key's fingerprint (`SHA256:Jc7vGCbxGzAynJLQ2dM/xNfb4ulez+YaEv3wBNj2U3
 GitHub shows the same fingerprint next to an added key, so comparing them catches a
 truncated or line-wrapped paste — the usual failure when copying a long key out of a
 terminal window.
+
+## nginx — serving the built site over HTTP (port 80)
+
+Ubuntu 26.04, nginx 1.28.3 from the distro repo. HTTP only; TLS comes later.
+
+```bash
+sudo apt-get update -qq
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y nginx
+```
+Installs nginx. `DEBIAN_FRONTEND=noninteractive` stops any package from opening an
+interactive prompt mid-install, which would hang a non-tty session. The package
+auto-enables and starts the service, so nginx is already listening on :80 afterwards.
+
+```bash
+nginx -V 2>&1 | tr ' ' '\n' | grep -E 'brotli|gzip_static|http_v2'
+```
+Lists which optional modules the binary was *compiled* with — you cannot enable a module
+that isn't compiled in. Result: `http_v2` and `gzip_static` yes, **brotli no**. Brotli
+beats gzip by ~15-20% on text but isn't in Ubuntu's build; it needs a third-party module
+compiled from source, which is why gzip is still the right call here.
+
+### The permission problem with serving out of $HOME
+
+```bash
+namei -l /home/claude-agent/sysadmin/portfolio/dist/index.html
+```
+Prints the ownership and mode of **every directory** along a path. This is the fast way
+to diagnose an nginx 403: the worker runs as `www-data`, and it needs execute (`x`)
+permission on every single directory in the chain, not just the final file.
+
+It showed `/home/claude-agent` as `drwxr-x---` (750) — no `x` for "other", so `www-data`
+could not traverse into it at all.
+
+```bash
+chmod o+x /home/claude-agent
+sudo -u www-data test -r <path>/dist/index.html && echo YES
+```
+`o+x` (750 → 751) grants *traverse* only, not read or list. Another user can `cd` through
+the directory and open a path they already know, but cannot `ls` to discover what's in it.
+The second command verifies the fix by actually attempting the read **as** `www-data`
+rather than assuming.
+
+This is the tax for serving from a home directory, and it's exactly why nginx's convention
+is `/var/www`. A tidier long-term layout: rsync `dist/` to `/var/www/arcrayde.com`, owned
+`www-data:www-data`, and revert the home directory to 750.
+
+### Why config went in conf.d/ instead of nginx.conf
+
+`/etc/nginx/nginx.conf` is a dpkg *conffile*. Editing it makes every future
+`apt upgrade` of nginx stop and ask you to merge your version against the new one.
+`conf.d/*.conf` is included inside `http{}` (nginx.conf line 60) and is upgrade-safe,
+so global settings live there instead.
+
+Two directives had to stay in `nginx.conf` regardless, because **a directive cannot
+appear twice in the same block**:
+
+```bash
+sudo nginx -t
+# [emerg] "server_tokens" directive is duplicate in conf.d/10-hardening.conf:8
+```
+`server_tokens` was already set at nginx.conf:22 and `gzip on` at line 47. Redefining
+either in `conf.d` is a fatal error, not an override. `server_tokens` was changed in
+place (Ubuntu's own comment on that line invites it), and `gzip on` was left alone with
+only the *tuning* directives added in `conf.d/20-gzip.conf`.
+
+```bash
+sudo cp /etc/nginx/nginx.conf /etc/nginx/nginx.conf.orig-backup
+```
+Keeps the pristine distro config to diff against later.
+
+Files created:
+
+| Path | Purpose |
+| --- | --- |
+| `/etc/nginx/conf.d/10-hardening.conf` | body-size cap, slow-client timeouts |
+| `/etc/nginx/conf.d/20-gzip.conf` | gzip tuning (`gzip on` stays in nginx.conf) |
+| `/etc/nginx/snippets/security-headers.conf` | all security headers, re-includable |
+| `/etc/nginx/sites-available/arcrayde.com` | the site + www→apex redirect |
+| `/etc/nginx/sites-available/000-catch-all` | `default_server` returning 444 |
+
+### The add_header trap
+
+nginx's `add_header` is **not cumulative across blocks**. Headers from an outer block are
+inherited *only if the inner block declares no `add_header` of its own*. The instant a
+`location` sets its own `Cache-Control`, every server-level security header silently
+disappears for that location — no warning, no error, and `nginx -t` still passes.
+
+That's why the headers live in a snippet that is `include`d again inside **every**
+`location` that sets `Cache-Control`. Verify with curl per-location, never just on `/`.
+
+### Cache strategy
+
+Two classes of file, two very different rules:
+
+- `/_astro/*` — filenames contain a content hash (`index.BRq_hIYa.css`), so the URL
+  changes whenever the bytes do. Safe to cache forever:
+  `public, max-age=31536000, immutable`. `immutable` also stops revalidation on reload.
+- Everything else (`favicon.ico`, images) — same filename across deploys, so a one-year
+  cache would leave no way to push an update. 7 days (`max-age=604800`).
+- HTML — `no-cache`, which does *not* mean "don't cache". It means "cache, but always
+  revalidate before reuse". nginx sends `ETag`, so an unchanged page costs a cheap 304
+  and a deploy is picked up instantly. Caching HTML by time is how a deploy becomes
+  invisible for hours.
+
+### Verifying
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
+Always test before reloading. `reload` re-reads config and cycles workers with no dropped
+connections, unlike `restart`. Note that in-flight requests may still be served by the
+*old* worker for a moment — a curl fired immediately after reload can show stale headers
+and look like the config failed.
+
+```bash
+curl -sS -o /dev/null -D - -H 'Host: arcrayde.com' -H 'Accept-Encoding: gzip' http://127.0.0.1/
+```
+Tests locally without depending on DNS. `-D -` dumps response headers, `-o /dev/null`
+discards the body. The `Host:` header is what nginx matches `server_name` against, so
+this exercises the real server block over the loopback interface.
+
+Reading the `ETag` is a quick way to confirm *which* file was served: `W/"6a7e0e7e-8f1d"`
+ends in the size in hex — `0x8f1d` = 36637 bytes = our `index.html`. An unexpected 615
+bytes means nginx is still serving `/var/www/html/index.nginx-debian.html`.
+
+```bash
+curl -sS -o /dev/null -w '%{http_code}\n' -H 'If-None-Match: "<etag>"' http://127.0.0.1/
+```
+Sends a conditional request. A `304` proves revalidation works and that repeat visits
+cost almost nothing.
+
+```bash
+curl -sS http://127.0.0.1/ -o a; curl -sS -H 'Accept-Encoding: gzip' --raw http://127.0.0.1/ -o b
+```
+`--raw` tells curl **not** to transparently decompress, so the on-the-wire byte count can
+be compared. Measured: HTML 36637 → 6729 B (81.6% saved), CSS 36184 → 7077 B (80.4%).
+
+Verified behaviour:
+
+| Request | Result |
+| --- | --- |
+| `/` | 200, `no-cache`, gzip, all security headers |
+| `/_astro/*.css` | 200, `max-age=31536000, immutable` |
+| `/favicon.ico` | 200, `max-age=604800` |
+| conditional GET | 304 |
+| `/nope` | 404 **with** security headers (the `always` flag) |
+| unknown Host / bare IP | connection closed, no response (444) |
+| `Host: www.arcrayde.com` | 301 → `http://arcrayde.com` preserving path + query |
+| `/.env` | 403 |
+| `/.well-known/acme-challenge/x` | 404, **not** 403 |
+
+That last row matters: a blanket dotfile deny (`location ~ /\.`) is a classic way to break
+certbot, whose HTTP-01 challenge is served from `/.well-known/`. The negative lookahead
+`location ~ /\.(?!well-known)` blocks dotfiles while leaving that path reachable.
+
+### Things deliberately not done yet
+
+```bash
+getent ahosts arcrayde.com     # -> 34.174.73.152
+curl -sS https://api.ipify.org # -> 54.159.196.213 (this VPS)
+```
+**DNS does not point at this box.** The config is verified over loopback, but the site is
+not publicly reachable at that name, and certbot's HTTP-01 challenge will fail until the
+A record for `arcrayde.com` (and `www`) is repointed at the VPS.
+
+`Strict-Transport-Security` is deliberately absent. It is meaningless over plain HTTP and
+dangerous to set before TLS works: a browser that sees it will refuse to reach the site
+over HTTP afterwards, locking you out of your own site. Add it in the HTTPS lesson,
+starting with a short `max-age` until confident.
+
+`script-src` uses `'unsafe-inline'` because the page has two inline `<script>` blocks.
+The stricter fix is a SHA-256 hash per script:
+
+```bash
+grep -oPzo '(?s)<script>\K.*?(?=</script>)' dist/index.html | openssl dgst -sha256 -binary | openssl base64
+```
+But those hashes change on every content edit, and the *server* config would need updating
+in lockstep with each rsync deploy — a silent page-breaker. Not worth it for a static site
+with no user input and no third-party scripts.
+
+`ufw` is inactive; port 80 is open at the OS level and access is governed by the cloud
+firewall / security group instead.
