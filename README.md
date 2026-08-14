@@ -10,7 +10,7 @@ A single-page portfolio site, built and deployed end to end on an AWS EC2 instan
 
 This project exists to learn **developing and deploying with Claude Code**.
 
-The site itself is the artefact; the point was the full path from an empty
+The site itself is the artifact; the point was the full path from an empty
 directory to a working HTTPS site on my own infrastructure — writing the front
 end, wiring the build, provisioning the server, configuring nginx, cutting DNS
 over from an existing host, and terminating TLS. It was built collaboratively
@@ -169,7 +169,7 @@ only inside the 30-day expiry window). Renewal has been verified with
   the compiled CSS for the class, not to trust a green build.
 - **A visible change is not necessarily the change you asked for.** I asked to
   cut the hero-to-About gap by 75%. Padding was reduced by exactly that, and I
-  saw no difference — because the hero was `min-h-svh` with centred content, so
+  saw no difference — because the hero was `min-h-svh` with centered content, so
   the gap was leftover *viewport*, not padding, and `justify-center` absorbed
   half of what was removed. The arithmetic was right and irrelevant. Correct
   diagnosis required understanding the layout, not the numbers.
@@ -182,7 +182,7 @@ only inside the 30-day expiry window). Renewal has been verified with
 - **Two roots, no common ancestor.** This repo grew a `master` and a `main`
   with entirely unrelated histories — `git merge-base` returned nothing. That
   can't be merged normally; the files have to be ported deliberately.
-- **Choosing which history survives is a judgement call about value, not
+- **Choosing which history survives is a judgment call about value, not
   recency.** `main` looked like the stale branch but held the only record of
   how the VPS was provisioned. Deleting it would have destroyed knowledge that
   was not recoverable from the code. The reconciliation kept `main` and moved
@@ -294,7 +294,7 @@ only inside the 30-day expiry window). Renewal has been verified with
 
 ### Debugging
 
-The recurring lesson: **reproduce the exact failing condition before theorising.**
+The recurring lesson: **reproduce the exact failing condition before theorizing.**
 
 - A dev server "not working" turned out to be a *different* server on the same
   port, serving a stale scaffold, left running for 22 hours.

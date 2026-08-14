@@ -286,7 +286,7 @@ nothing — see below.
 matches no `server_name` — including requests to the raw IP address. It does
 `return 444`, an nginx-specific code meaning "close the connection with no
 response at all". So `http://<public-ip>/` producing `curl: (52) Empty reply
-from server` is correct behaviour, not a fault. The site answers only to
+from server` is correct behavior, not a fault. The site answers only to
 `Host: arcrayde.com`.
 
 Without a catch-all the *first* server block loaded becomes the implicit
