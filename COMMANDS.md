@@ -237,3 +237,69 @@ Prints the key's fingerprint (`SHA256:Jc7vGCbxGzAynJLQ2dM/xNfb4ulez+YaEv3wBNj2U3
 GitHub shows the same fingerprint next to an added key, so comparing them catches a
 truncated or line-wrapped paste — the usual failure when copying a long key out of a
 terminal window.
+
+## nginx: serving the built site (2026-08-13)
+
+nginx serves the static `dist/` output directly. No Node process runs in
+production — Astro's build is plain HTML/CSS/JS on disk.
+
+The live configuration lives in `/etc/nginx/`, which is outside this repo, so
+copies are vendored into `deploy/nginx/` to keep them version-controlled.
+Those copies are reference material: editing them changes nothing until they
+are copied back to `/etc/nginx/` and nginx is reloaded.
+
+```bash
+sudo apt-get install -y nginx
+```
+Installs nginx and enables the service.
+
+```bash
+sudo ln -s /etc/nginx/sites-available/<site> /etc/nginx/sites-enabled/<site>
+```
+Debian/Ubuntu convention: every vhost lives in `sites-available/`, and a
+symlink into `sites-enabled/` is what actually activates it. Removing the
+symlink disables a site without deleting its config.
+
+```bash
+sudo nginx -t
+```
+Parses the whole config and reports errors *without* applying it. Always run
+before a reload — a syntax error in a reload can otherwise take the site down.
+
+```bash
+sudo systemctl reload nginx
+```
+Re-reads the config and gracefully hands connections to new workers. Unlike
+`restart`, in-flight requests are not dropped.
+
+```bash
+curl -sS -H "Host: arcrayde.com" http://127.0.0.1/
+```
+Tests a name-based vhost before DNS points anywhere. nginx picks the server
+block by the `Host` header, not by IP, so overriding the header reaches the
+site locally. Requesting the bare IP instead hits the catch-all and returns
+nothing — see below.
+
+### Why the bare IP returns an empty reply
+
+`000-catch-all` is the `default_server` and answers any request whose `Host`
+matches no `server_name` — including requests to the raw IP address. It does
+`return 444`, an nginx-specific code meaning "close the connection with no
+response at all". So `http://<public-ip>/` producing `curl: (52) Empty reply
+from server` is correct behaviour, not a fault. The site answers only to
+`Host: arcrayde.com`.
+
+Without a catch-all the *first* server block loaded becomes the implicit
+default, which would let arcrayde.com be served under any hostname pointed at
+this IP.
+
+### Two things that will bite on going live
+
+- The EC2 public IP changes on every stop/start. It moved from
+  `54.159.196.213` to `54.84.230.185` after one restart. Allocate an
+  **Elastic IP** before creating a DNS A record, or the record breaks on the
+  next reboot.
+- The AWS security group and `ufw` are independent layers and a port must be
+  open in **both**. `ufw` already allows 80/443; the security group still has
+  to be opened to `0.0.0.0/0` for those two ports (never 22) before the public
+  can reach the site.

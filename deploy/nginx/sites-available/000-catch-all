@@ -1,0 +1,20 @@
+# Catch-all default server.
+#
+# Whichever server block is marked "default_server" handles any request whose
+# Host header matches no other server_name -- including bare-IP requests and
+# the constant background noise of scanners probing for phpMyAdmin, .env, etc.
+#
+# Without this, the FIRST server block loaded becomes the implicit default,
+# which would mean arcrayde.com answers for every unknown hostname. That lets
+# the site be served under someone else's domain and pollutes its access log.
+#
+# 444 is nginx-specific: close the connection with no response at all. Cheaper
+# than 403/404 and gives a scanner nothing to work with.
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+
+    access_log off;
+    return 444;
+}
