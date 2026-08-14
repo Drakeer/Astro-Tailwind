@@ -8,21 +8,25 @@
 # it doubles the surface you have to reason about).
 ##
 server {
-    listen 80;
-    listen [::]:80;
     server_name www.arcrayde.com;
 
     # 301 = permanent. Use 302 while testing if you are unsure, because
     # browsers cache 301s aggressively and a wrong one is painful to undo.
-    return 301 http://arcrayde.com$request_uri;
+    return 301 https://arcrayde.com$request_uri;
+
+    listen 443 ssl; # managed by Certbot
+    listen [::]:443 ssl; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/arcrayde.com/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/arcrayde.com/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
 }
 
 ##
 # The site itself.
 ##
 server {
-    listen 80;
-    listen [::]:80;
     server_name arcrayde.com;
 
     root /home/claude-agent/sysadmin/portfolio/dist;
@@ -89,4 +93,39 @@ server {
         add_header Cache-Control "no-cache" always;
         try_files $uri $uri/ =404;
     }
+
+    listen 443 ssl; # managed by Certbot
+    listen [::]:443 ssl ipv6only=on; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/arcrayde.com/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/arcrayde.com/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+}
+
+server {
+    if ($host = arcrayde.com) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+    listen 80;
+    listen [::]:80;
+    server_name arcrayde.com;
+    return 404; # managed by Certbot
+
+
+}
+server {
+    if ($host = www.arcrayde.com) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+
+    listen 80;
+    listen [::]:80;
+    server_name www.arcrayde.com;
+    return 404; # managed by Certbot
+
+
 }

@@ -303,3 +303,84 @@ this IP.
   open in **both**. `ufw` already allows 80/443; the security group still has
   to be opened to `0.0.0.0/0` for those two ports (never 22) before the public
   can reach the site.
+
+## TLS with Let's Encrypt (2026-08-14)
+
+```bash
+sudo apt-get install -y certbot python3-certbot-nginx
+```
+Installs certbot and the nginx plugin. The plugin lets certbot edit the nginx
+config directly — adding `listen 443 ssl`, the certificate paths, and the
+HTTP->HTTPS redirect — rather than leaving that as manual work.
+
+```bash
+sudo certbot --nginx -d arcrayde.com -d www.arcrayde.com \
+  --agree-tos -m drakes2005@gmail.com --no-eff-email --redirect --non-interactive
+```
+Requests one certificate covering both names (they appear as Subject Alternative
+Names on a single cert) and installs it.
+
+- `--redirect` adds the HTTP->HTTPS 301. Without it certbot leaves port 80
+  serving plaintext alongside HTTPS.
+- `-m` is where expiry warnings go. Worth keeping accurate — it is the only
+  warning before a cert lapses.
+- Validation is HTTP-01: Let's Encrypt fetches a token over **port 80** from
+  `/.well-known/acme-challenge/`. Port 80 must stay open and the dotfile-deny
+  rule must keep its `(?!well-known)` exception, or renewal fails.
+
+### Bug this exposed: a redirect that downgraded to HTTP
+
+The hand-written `www` block used a hardcoded scheme:
+
+```nginx
+return 301 http://arcrayde.com$request_uri;   # wrong once TLS exists
+```
+
+certbot added TLS to that block but does not rewrite the body of an existing
+`return`, so `https://www.arcrayde.com` redirected to **http://**arcrayde.com,
+which then redirected back to HTTPS. It worked, so it was easy to miss — but it
+sent one request in cleartext and added a round trip. Fixed to:
+
+```nginx
+return 301 https://arcrayde.com$request_uri;
+```
+
+Lesson: hardcoding a scheme in a redirect breaks silently the moment TLS is
+added. `$scheme` is not the fix here either — the whole point is forcing https.
+
+```bash
+sudo nginx -t && sudo systemctl reload nginx
+```
+Validate, then reload. Always in that order.
+
+### Verifying all four entry points
+
+```bash
+curl -sSI http://arcrayde.com/ | grep -iE "^HTTP|^location"
+```
+Checked for `http://`, `http://www`, `https://www`, and `https://` — all must
+end at `https://arcrayde.com`. Testing only the apex would have hidden the www
+downgrade above.
+
+### Automatic renewal
+
+```bash
+systemctl list-timers certbot.timer
+sudo certbot renew --dry-run
+```
+The Debian package ships a systemd timer (`certbot.timer`, enabled and active)
+that runs twice daily; certbot only acts when a cert is within 30 days of
+expiry. `--dry-run` exercises the whole renewal against Let's Encrypt's staging
+environment without touching rate limits or the live cert — the only way to know
+renewal actually works before it matters at 3am in November.
+
+Certificate issued 2026-08-14, expires 2026-11-12, covering `arcrayde.com` and
+`www.arcrayde.com`.
+
+### HSTS is still off, deliberately
+
+`snippets/security-headers.conf` keeps `Strict-Transport-Security` commented
+out. Now that HTTPS works it can be enabled, but start with a short max-age
+(e.g. 300) and raise it only after a few days — a browser that has seen HSTS
+will refuse to reach the site over HTTP at all, and that is not revocable from
+the server side within the max-age window.
