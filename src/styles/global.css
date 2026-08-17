@@ -25,8 +25,8 @@
   /* status */
   --color-up: #4ade80;
 
-  --font-mono: ui-monospace, "JetBrains Mono", "SFMono-Regular", "SF Mono",
-    Menlo, Consolas, "Liberation Mono", monospace;
+  --font-mono: ui-monospace, "SFMono-Regular", "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     "Helvetica Neue", Arial, sans-serif;
 }
