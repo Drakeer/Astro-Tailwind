@@ -11,7 +11,7 @@ const nav = [
   class="fixed inset-x-0 top-0 z-40 border-b border-edge/80 bg-void/85 backdrop-blur-md"
 >
   <div
-    class="mx-auto flex h-12 max-w-6xl items-center gap-3 overflow-x-auto px-4 font-mono text-xs [scrollbar-width:none] sm:gap-4 sm:overflow-visible sm:px-8 [&::-webkit-scrollbar]:hidden"
+    class="mx-auto flex h-12 max-w-6xl items-center gap-3 overflow-x-auto px-3 font-mono text-xs [scrollbar-width:none] sm:gap-4 sm:overflow-visible sm:px-8 [&::-webkit-scrollbar]:hidden"
   >
     <!-- left: session identity, styled like a tmux status segment -->
     <a
@@ -21,8 +21,8 @@ const nav = [
       <span
         class="inline-block size-1.5 shrink-0 rounded-full bg-up shadow-[0_0_8px] shadow-up/70"
         aria-hidden="true"></span>
-      <span class="text-ink-dim group-hover:text-ink">eric</span>
-      <span class="text-ink-faint">@</span>
+      <span class="hidden text-ink-dim group-hover:text-ink sm:inline">eric</span>
+      <span class="hidden text-ink-faint sm:inline">@</span>
       <span class="text-accent">arcrayde</span>
     </a>
 
@@ -30,7 +30,7 @@ const nav = [
 
     <nav
       aria-label="Sections"
-      class="ml-auto flex shrink-0 items-center gap-3 sm:gap-6"
+      class="ml-auto flex shrink-0 items-center gap-2.5 sm:gap-6"
     >
       {
         nav.map((item) => (
@@ -39,7 +39,7 @@ const nav = [
             data-nav
             class="text-ink-faint transition-colors hover:text-accent"
           >
-            <span class="text-edge-lit" aria-hidden="true">
+            <span class="hidden text-edge-lit sm:inline" aria-hidden="true">
               /
             </span>
             {item.label}
