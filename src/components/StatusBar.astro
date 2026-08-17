@@ -11,7 +11,7 @@ const nav = [
   class="fixed inset-x-0 top-0 z-40 border-b border-edge/80 bg-void/85 backdrop-blur-md"
 >
   <div
-    class="mx-auto flex h-12 max-w-6xl items-center gap-4 px-5 font-mono text-xs sm:px-8"
+    class="mx-auto flex h-12 max-w-6xl items-center gap-3 overflow-x-auto px-4 font-mono text-xs [scrollbar-width:none] sm:gap-4 sm:overflow-visible sm:px-8 [&::-webkit-scrollbar]:hidden"
   >
     <!-- left: session identity, styled like a tmux status segment -->
     <a
@@ -28,7 +28,10 @@ const nav = [
 
     <span class="hidden text-ink-faint sm:inline" aria-hidden="true">:~$</span>
 
-    <nav aria-label="Sections" class="ml-auto flex items-center gap-4 sm:gap-6">
+    <nav
+      aria-label="Sections"
+      class="ml-auto flex shrink-0 items-center gap-3 sm:gap-6"
+    >
       {
         nav.map((item) => (
           <a
