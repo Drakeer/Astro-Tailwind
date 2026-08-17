@@ -24,7 +24,11 @@ const { title, description } = Astro.props;
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content="https://arcrayde.com/" />
+    <meta property="og:image" content="https://arcrayde.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://arcrayde.com/og-image.png" />
 
     <!-- Set before paint so reveal-on-scroll only engages when JS can undo it. -->
     <script is:inline>
